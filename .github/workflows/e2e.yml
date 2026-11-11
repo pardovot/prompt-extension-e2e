@@ -25,7 +25,9 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps --no-shell chromium
+      # The system packages are only needed on Linux. On Windows the same flag installs the Media Foundation
+      # feature, which takes about three minutes and Chromium does not need.
+      - run: npx playwright install ${{ runner.os == 'Linux' && '--with-deps' || '' }} --no-shell chromium
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run format:check
