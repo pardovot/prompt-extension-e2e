@@ -54,8 +54,12 @@ jobs:
     permissions:
       contents: write
       statuses: write
+      pages: write
+      id-token: write
     concurrency:
       group: reports
+    environment:
+      name: github-pages
     env:
       REPORTS_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/${{ github.run_id }}
     steps:
@@ -74,11 +78,16 @@ jobs:
             system="${report#downloaded/playwright-report-}"
             mv "$report" "$GITHUB_RUN_ID/${system%-latest}"
           done
+          rmdir downloaded
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add "$GITHUB_RUN_ID"
           git commit --message "Add the reports of run $GITHUB_RUN_ID"
           git push
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: .
+      - uses: actions/deploy-pages@v5
       - name: Link the reports from the run summary and from the commit
         env:
           GH_TOKEN: ${{ github.token }}
@@ -86,6 +95,7 @@ jobs:
           echo "### Playwright reports" >> "$GITHUB_STEP_SUMMARY"
           for report in "$GITHUB_RUN_ID"/*/; do
             system="$(basename "$report")"
-            echo "- [$system]($REPORTS_URL/$system/)" >> "$GITHUB_STEP_SUMMARY"
-            gh api "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" --silent               --field state=success               --field context="report / $system"               --field description="Playwright HTML report"               --field target_url="$REPORTS_URL/$system/"
+            link="$REPORTS_URL/$system/"
+            echo "- [$system]($link)" >> "$GITHUB_STEP_SUMMARY"
+            gh api "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" --silent -f state=success -f context="report / $system" -f target_url="$link"
           done
