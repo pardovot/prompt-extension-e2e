@@ -4,9 +4,9 @@ import { readFile } from 'node:fs/promises';
 
 const RECEIVING_SITE_URL = 'https://example.com/';
 const LOG_FILE_NAME = 'prompt_security_extension_debug_logs.txt';
-// The extension writes the first entry before each heartbeat, and the context fixture waits for the startup
-// heartbeat, so that entry is in the logs when a test starts. The second is written by the download itself.
-const HEARTBEAT_ENTRY = 'Sends heartbeat with statistics';
+// The extension logs every message its background script receives. The popup sends the first one when it
+// opens, which a log test does before anything else, and the second one when Download Logs is clicked.
+const POPUP_OPENED_ENTRY = 'Received message getPopupSettings';
 const DOWNLOAD_ENTRY = 'Received message saveLogs';
 
 // Every log line carries a part of the API key, so the checks compare booleans and a failure does not print
@@ -19,9 +19,9 @@ export class LogsDownload {
   }
 
   async verifyHoldsEarlierEntries(): Promise<void> {
-    await test.step('Verify the downloaded log file holds the entries written since the browser started', async () => {
+    await test.step('Verify the downloaded log file holds an entry from before the download', async () => {
       const logs = await this.downloadedLogs();
-      expect(logs.includes(HEARTBEAT_ENTRY), 'the file holds the heartbeat entry').toBe(true);
+      expect(logs.includes(POPUP_OPENED_ENTRY), 'the file holds the entry of the popup opening').toBe(true);
     });
   }
 
@@ -29,7 +29,7 @@ export class LogsDownload {
     await test.step('Verify the downloaded log file holds no entry from before the download', async () => {
       const logs = await this.downloadedLogs();
       expect(logs.includes(DOWNLOAD_ENTRY), 'the file holds the entry of the download').toBe(true);
-      expect(logs.includes(HEARTBEAT_ENTRY), 'the file holds the heartbeat entry').toBe(false);
+      expect(logs.includes(POPUP_OPENED_ENTRY), 'the file holds the entry of the popup opening').toBe(false);
     });
   }
 

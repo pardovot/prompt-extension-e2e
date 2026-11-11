@@ -5,6 +5,7 @@ import { BasePage, type PageObjectParams } from 'src/base-page';
 const CHAT_GPT_URL = 'https://chatgpt.com/';
 const PROMPT_REQUEST_PATH = '/unauth-mweb/conversation/updates';
 const PROMPT_FIELD = 'prompt';
+const EXTENSION_PAGE_SCRIPT_PATH = 'bundle/script.bundle.js';
 
 function sentPrompt(request: Request): string | null {
   return new URLSearchParams(request.postData() ?? '').get(PROMPT_FIELD);
@@ -30,10 +31,11 @@ export class ChatGpt extends BasePage {
     });
   }
 
-  // The page is usable before its scripts have loaded, and a prompt sent in that state goes out as a plain
-  // form post that the extension does not inspect, so the visit waits for the load event.
+  // The extension inspects prompts through a script it adds to the page once the rule decision for the site
+  // has arrived, which is later than the page's load event. A prompt sent before that goes out uninspected,
+  // so the visit also waits for that script.
   override async visit(): Promise<void> {
-    await super.visit(CHAT_GPT_URL);
+    await Promise.all([this.waitForExtensionPageScript(), super.visit(CHAT_GPT_URL)]);
   }
 
   async sendTypedPrompt(prompt: string): Promise<void> {
@@ -52,6 +54,13 @@ export class ChatGpt extends BasePage {
       await this.promptInput.click();
       await this.page.keyboard.press('ControlOrMeta+V');
       await this.sendButton.click();
+    });
+  }
+
+  private async waitForExtensionPageScript(): Promise<void> {
+    await test.step('Wait for the extension to add its script to the page', async () => {
+      const pageScriptUrl = this.extensionUrl(EXTENSION_PAGE_SCRIPT_PATH);
+      await this.page.waitForEvent('requestfinished', (request) => request.url() === pageScriptUrl);
     });
   }
 
