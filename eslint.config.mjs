@@ -9,13 +9,7 @@ const relativeImports = {
 };
 
 export default defineConfig(
-  globalIgnores([
-    'playwright-report/',
-    'test-results/',
-    '.extension-unpacked/',
-    '.profiles/',
-    '.local/',
-  ]),
+  globalIgnores(['playwright-report/', 'test-results/', '.extension-unpacked/', '.profiles/', '.local/']),
   eslint.configs.recommended,
   tseslint.configs.recommendedTypeChecked,
   {
