@@ -1,0 +1,47 @@
+name: e2e
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps --no-shell chromium
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run format:check
+      - id: test
+        run: npm test
+        env:
+          PROMPT_API_DOMAIN: eu.prompt.security
+          PROMPT_API_KEY: ${{ secrets.PROMPT_API_KEY }}
+      - id: redact
+        if: ${{ !cancelled() && steps.test.conclusion != 'skipped' }}
+        run: npm run report:redact
+        env:
+          PROMPT_API_KEY: ${{ secrets.PROMPT_API_KEY }}
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() && steps.redact.outcome == 'success' }}
+        with:
+          name: playwright-report-${{ matrix.os }}
+          path: playwright-report/
+          if-no-files-found: error

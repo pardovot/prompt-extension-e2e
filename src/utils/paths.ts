@@ -8,3 +8,5 @@ export const CONFIGURED_PROFILE_DIRECTORY = resolve('.profiles/configured');
 export const CONFIGURED_PROFILE_FINGERPRINT = resolve('.profiles/configured/suite-fingerprint');
 export const TEST_PROFILES_DIRECTORY = resolve('.profiles/tests');
 export const TEST_PROFILE_PREFIX = resolve('.profiles/tests/profile-');
+export const TEST_RESULTS_DIRECTORY = resolve('test-results');
+export const HTML_REPORT_DIRECTORY = resolve('playwright-report');

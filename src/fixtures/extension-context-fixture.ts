@@ -50,8 +50,13 @@ export const extensionContextFixtures: Fixtures<ExtensionContextFixtures, object
     );
 
     const profileDirectory = createProfileDirectory(extensionProfile);
+    // The `video` option of the config applies only to contexts Playwright creates itself, so this context
+    // records its own tabs and attaches the video of each tab still open at the end to every test, passed
+    // or failed. A new profile opens a tab that Chromium closes at once, and its empty video is left out.
+    const videoDirectory = testInfo.outputPath('videos');
     const context = await chromium.launchPersistentContext(profileDirectory, {
       args: [`--disable-extensions-except=${UNPACKED_EXTENSION_DIRECTORY}`, `--load-extension=${UNPACKED_EXTENSION_DIRECTORY}`],
+      recordVideo: { dir: videoDirectory },
     });
 
     try {
@@ -61,7 +66,16 @@ export const extensionContextFixtures: Fixtures<ExtensionContextFixtures, object
 
       await use(context);
     } finally {
+      const videos = context.pages().map((tab) => tab.video());
       await context.close();
+
+      for (const video of videos) {
+        if (video) {
+          await testInfo.attach('video', { path: await video.path(), contentType: 'video/webm' });
+        }
+      }
+
+      rmSync(videoDirectory, { recursive: true, force: true });
 
       if (extensionProfile !== 'setup') {
         rmSync(profileDirectory, { recursive: true, force: true });
@@ -69,6 +83,13 @@ export const extensionContextFixtures: Fixtures<ExtensionContextFixtures, object
         markConfiguredProfileCurrent();
       }
     }
+  },
+
+  // A persistent context opens with one tab. Tests use that tab, so each test has one tab and one video.
+  page: async ({ context }, use) => {
+    const [firstPage] = context.pages();
+
+    await use(firstPage ?? (await context.newPage()));
   },
 
   extensionId: async ({ context }, use) => {
