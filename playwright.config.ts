@@ -13,10 +13,7 @@ export default defineConfig({
   retries: env.CI ? 1 : 0,
   timeout: 60000,
   expect: { timeout: CALL_TIMEOUT_MILLISECONDS },
-  reporter: [
-    ['list', { printSteps: true }],
-    ['html', { open: 'never', outputFolder: HTML_REPORT_DIRECTORY }],
-  ],
+  reporter: [['list'], ['html', { open: 'never', outputFolder: HTML_REPORT_DIRECTORY }]],
   use: {
     channel: 'chromium',
     actionTimeout: CALL_TIMEOUT_MILLISECONDS,
