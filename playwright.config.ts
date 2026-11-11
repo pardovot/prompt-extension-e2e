@@ -1,10 +1,11 @@
 import { defineConfig } from '@playwright/test';
-import { env } from './src/env';
+import { env } from 'src/env';
 
 const CALL_TIMEOUT_MILLISECONDS = 15000;
 
 export default defineConfig({
   testDir: './src',
+  globalSetup: './src/global-setup.ts',
   fullyParallel: true,
   forbidOnly: env.CI,
   retries: env.CI ? 1 : 0,

@@ -1,8 +1,8 @@
 import * as dotenv from 'dotenv';
-import { join } from 'node:path';
 import { z } from 'zod';
+import { ENV_FILE } from 'src/utils/paths';
 
-dotenv.config({ path: join(__dirname, '..', '.env'), quiet: true });
+dotenv.config({ path: ENV_FILE, quiet: true });
 
 const envSchema = z.object({
   CI: z

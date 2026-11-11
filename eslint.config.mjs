@@ -3,6 +3,11 @@ import playwright from 'eslint-plugin-playwright';
 import { defineConfig, globalIgnores } from 'eslint/config';
 import tseslint from 'typescript-eslint';
 
+const relativeImports = {
+  group: ['./*', '../*'],
+  message: "Write imports from the repository root, as 'src/...'.",
+};
+
 export default defineConfig(
   globalIgnores([
     'playwright-report/',
@@ -34,16 +39,23 @@ export default defineConfig(
     },
   },
   {
+    files: ['**/*.ts'],
+    rules: {
+      'no-restricted-imports': ['error', { patterns: [relativeImports] }],
+    },
+  },
+  {
     files: ['**/*.spec.ts', '**/*.setup.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
         {
+          patterns: [relativeImports],
           paths: [
             {
               name: '@playwright/test',
               importNames: ['test', 'expect'],
-              message: 'Import test and expect from the fixtures folder.',
+              message: "Import test and expect from 'src/fixtures'.",
             },
           ],
         },

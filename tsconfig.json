@@ -4,6 +4,7 @@
     "module": "preserve",
     "moduleResolution": "bundler",
     "types": ["node"],
+    "paths": { "src/*": ["./src/*"] },
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
