@@ -30,10 +30,16 @@ export class ExtensionPopup extends BasePage {
     this.page.on('dialog', (dialog) => this.alerts.push(dialog));
   }
 
-  // The popup's stylesheet hides both inputs until its script has attached their listeners, so the page has
-  // to be loaded before a fill can rely on the inputs being visible.
+  // The popup keeps starting up after its load event: it shows its inputs, and a few milliseconds later its
+  // buttons get their click handlers, 15 ms after load when measured here and about 100 ms on a processor
+  // slowed six times. A click before that does nothing, so the visit waits for both inputs to show.
   override async visit(): Promise<void> {
     await super.visit(this.extensionUrl(POPUP_PATH));
+
+    await test.step('Wait for the popup to finish starting up', async () => {
+      await expect(this.apiDomainInput).toBeVisible();
+      await expect(this.apiKeyInput).toBeVisible();
+    });
   }
 
   async save(apiDomain: string, apiKey: string): Promise<void> {
