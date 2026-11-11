@@ -80,8 +80,9 @@ profile.
 and macOS. Each job installs the dependencies and the browser, runs the static checks and the tests, and
 prints every test and its result to its log.
 
-The HTML report of each job is uploaded as an artifact. Before the upload the API key is replaced in it,
-traces included, by `***` and its last four characters.
+The HTML report of each job is uploaded as an artifact, and the reports of the latest run on `master` are
+published at https://pardovot.github.io/prompt-extension-e2e/. Before the upload the API key is replaced in
+each report, traces included, by `***` and its last four characters.
 
 The workflow needs one repository secret, `PROMPT_API_KEY`.
 

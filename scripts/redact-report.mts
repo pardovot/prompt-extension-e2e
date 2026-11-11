@@ -3,6 +3,9 @@ import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const VISIBLE_KEY_CHARACTERS = 4;
+// The extension prints the first 8 characters of the key as APP_ID in each of its log lines, and the trace of
+// a failed test holds those lines.
+const APP_ID_CHARACTERS = 8;
 // Latin1 maps every byte to one character and back, so binary content survives being handled as text.
 const BYTE_ENCODING = 'latin1';
 // Matches the base64 text of the zip that the HTML report embeds in its index.html as a data URI.
@@ -18,13 +21,15 @@ if (!reportDirectory || !apiKey) {
 // The end of the key stays readable, so a reader of a report can tell which key the run used.
 const redactedKey = `***${apiKey.slice(-VISIBLE_KEY_CHARACTERS)}`;
 
-const redactText = (text: string): string => text.replaceAll(apiKey, redactedKey);
+const appId = apiKey.slice(0, APP_ID_CHARACTERS);
 
-// Only the entries that hold the key are rewritten, because adm-zip writes a wrong checksum for an empty
+const redactText = (text: string): string => text.replaceAll(apiKey, redactedKey).replaceAll(appId, '***');
+
+// Only the entries that hold the key or its start are rewritten, because adm-zip writes a wrong checksum for an empty
 // entry whose data is set, and a trace has empty entries.
 const redactZip = (content: Buffer): Buffer => {
   const zip = new AdmZip(content);
-  const entriesWithKey = zip.getEntries().filter((entry) => entry.getData().toString(BYTE_ENCODING).includes(apiKey));
+  const entriesWithKey = zip.getEntries().filter((entry) => entry.getData().toString(BYTE_ENCODING).includes(appId));
 
   for (const entry of entriesWithKey) {
     entry.setData(Buffer.from(redactText(entry.getData().toString(BYTE_ENCODING)), BYTE_ENCODING));

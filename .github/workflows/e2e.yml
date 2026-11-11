@@ -45,3 +45,28 @@ jobs:
           name: playwright-report-${{ matrix.os }}
           path: playwright-report/
           if-no-files-found: error
+
+  report:
+    name: publish reports
+    needs: test
+    if: ${{ !cancelled() && github.ref == 'refs/heads/master' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          path: .github/pages
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: .github/pages
+      - id: deploy
+        uses: actions/deploy-pages@v5
