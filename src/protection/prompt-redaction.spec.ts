@@ -6,20 +6,26 @@ const REDACTED_PROMPT = 'My card is [REDACTED_CREDIT_CARD_1] and my AWS secret i
 // The numbers are short because the backend redacts a longer run of digits as a phone number.
 const HARMLESS_PROMPT = 'Is 2026 a leap year, and how many days are there in 12 weeks?';
 
-// Both tests visit ChatGPT, which the allowed site test already does, because prompts can only be sent from
+// These tests visit ChatGPT, which the allowed site test already does, because prompts can only be sent from
 // the site's own prompt box.
 test.beforeEach(async ({ ChatGpt }) => {
   await ChatGpt.visit();
 });
 
-test('a card number and a secret in a prompt are redacted before the prompt reaches ChatGPT', async ({ ChatGpt, promptInspection }) => {
-  await ChatGpt.sendPrompt(SENSITIVE_PROMPT);
+test('a typed card number and secret are redacted before the prompt reaches ChatGPT', async ({ ChatGpt, promptInspection }) => {
+  await ChatGpt.sendTypedPrompt(SENSITIVE_PROMPT);
+  await promptInspection.verifyModifiedTo(REDACTED_PROMPT);
+  await ChatGpt.verifyPromptSentAs(REDACTED_PROMPT);
+});
+
+test('a pasted card number and secret are redacted before the prompt reaches ChatGPT', async ({ ChatGpt, promptInspection }) => {
+  await ChatGpt.sendPastedPrompt(SENSITIVE_PROMPT);
   await promptInspection.verifyModifiedTo(REDACTED_PROMPT);
   await ChatGpt.verifyPromptSentAs(REDACTED_PROMPT);
 });
 
 test('a prompt with harmless numbers reaches ChatGPT unchanged', async ({ ChatGpt, promptInspection }) => {
-  await ChatGpt.sendPrompt(HARMLESS_PROMPT);
+  await ChatGpt.sendTypedPrompt(HARMLESS_PROMPT);
   await promptInspection.verifyNotModified();
   await ChatGpt.verifyPromptSentAs(HARMLESS_PROMPT);
 });

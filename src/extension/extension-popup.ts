@@ -9,6 +9,7 @@ export class ExtensionPopup extends BasePage {
   private readonly apiDomainInput: Locator;
   private readonly apiKeyInput: Locator;
   private readonly saveButton: Locator;
+  private readonly downloadLogsButton: Locator;
   private readonly clearLogsButton: Locator;
   private readonly logsClearedMessage: Locator;
   private readonly heartbeats: BackendResponses;
@@ -21,6 +22,7 @@ export class ExtensionPopup extends BasePage {
     this.apiDomainInput = this.page.locator('#apiDomain');
     this.apiKeyInput = this.page.locator('#apiKey');
     this.saveButton = this.page.getByRole('button', { name: 'Save' });
+    this.downloadLogsButton = this.page.getByRole('button', { name: 'Download Logs' });
     this.clearLogsButton = this.page.getByRole('button', { name: 'Clear Logs' });
     this.logsClearedMessage = this.page.getByText('Logs were cleared', { exact: true });
     this.heartbeats = new BackendResponses(this.page.context(), HEARTBEAT_PATH);
@@ -67,6 +69,12 @@ export class ExtensionPopup extends BasePage {
     await test.step(`Verify the popup shows the saved API domain ${apiDomain}`, async () => {
       await expect(this.apiDomainInput).toHaveValue(apiDomain);
       await expect(this.saveButton).toBeHidden();
+    });
+  }
+
+  async downloadLogs(): Promise<void> {
+    await test.step('Download the extension logs', async () => {
+      await this.downloadLogsButton.click();
     });
   }
 

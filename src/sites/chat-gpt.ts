@@ -36,9 +36,21 @@ export class ChatGpt extends BasePage {
     await super.visit(CHAT_GPT_URL);
   }
 
-  async sendPrompt(prompt: string): Promise<void> {
-    await test.step(`Send the prompt "${prompt}"`, async () => {
+  async sendTypedPrompt(prompt: string): Promise<void> {
+    await test.step(`Type and send the prompt "${prompt}"`, async () => {
       await this.promptInput.pressSequentially(prompt);
+      await this.sendButton.click();
+    });
+  }
+
+  // The prompt is put on the browser's clipboard and pasted with the keyboard, so the page gets a real paste
+  // event the way it does when a person pastes a copied secret.
+  async sendPastedPrompt(prompt: string): Promise<void> {
+    await test.step(`Paste and send the prompt "${prompt}"`, async () => {
+      await this.page.context().grantPermissions(['clipboard-write']);
+      await this.page.evaluate((text) => navigator.clipboard.writeText(text), prompt);
+      await this.promptInput.click();
+      await this.page.keyboard.press('ControlOrMeta+V');
       await this.sendButton.click();
     });
   }

@@ -13,8 +13,10 @@ way the admin policy says.
 | The popup saves the valid API key and the extension reaches the backend | positive |
 | The popup reports a failed connection for a wrong API key | negative |
 | The popup of a configured extension shows the saved API domain | positive |
-| The popup confirms that the logs were cleared | positive |
-| A card number and a secret in a prompt are redacted before the prompt reaches ChatGPT | positive |
+| The popup downloads the extension logs | positive |
+| The popup clears the extension logs | positive |
+| A typed card number and secret are redacted before the prompt reaches ChatGPT | positive |
+| A pasted card number and secret are redacted before the prompt reaches ChatGPT | positive |
 | A prompt with harmless numbers reaches ChatGPT unchanged | negative |
 
 A site test relies on two things, the decision the extension got from the backend for that domain, and

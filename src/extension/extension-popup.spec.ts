@@ -25,7 +25,14 @@ test('the popup of a configured extension shows the saved API domain', async ({ 
   await ExtensionPopup.verifyConfigured(env.PROMPT_API_DOMAIN);
 });
 
-test('the popup confirms that the logs were cleared', async ({ ExtensionPopup }) => {
+test('the popup downloads the extension logs', async ({ ExtensionPopup, logsDownload }) => {
+  await ExtensionPopup.downloadLogs();
+  await logsDownload.verifyHoldsEarlierEntries();
+});
+
+test('the popup clears the extension logs', async ({ ExtensionPopup, logsDownload }) => {
   await ExtensionPopup.clearLogs();
   await ExtensionPopup.verifyLogsCleared();
+  await ExtensionPopup.downloadLogs();
+  await logsDownload.verifyHoldsNoEarlierEntries();
 });
