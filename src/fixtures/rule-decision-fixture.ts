@@ -4,8 +4,8 @@ import { z } from 'zod';
 import { BackendResponses, EVALUATE_RULE_PATH } from 'src/extension/backend';
 
 const ruleRequestSchema = z.object({ domain: z.string() });
-const ruleResponseSchema = z.object({
-  ruleInfo: z.object({
+const ruleResponseSchema = z.looseObject({
+  ruleInfo: z.looseObject({
     action: z.enum(['Block', 'Protect', 'Detect', 'DontTrack']),
   }),
 });
@@ -15,8 +15,26 @@ type RuleAction = z.infer<typeof ruleResponseSchema>['ruleInfo']['action'];
 export class RuleDecision {
   private readonly evaluations: BackendResponses;
 
-  constructor(context: BrowserContext) {
+  constructor(private readonly context: BrowserContext) {
     this.evaluations = new BackendResponses(context, EVALUATE_RULE_PATH);
+  }
+
+  // The request still goes to the backend, and only the action in its answer is replaced, so the extension
+  // gets a response that is real in every other field.
+  async overrideDecision(domain: string, action: RuleAction): Promise<void> {
+    await test.step(`Override the backend's decision for ${domain} with ${action}`, async () => {
+      await this.context.route(`**${EVALUATE_RULE_PATH}`, async (route) => {
+        if (ruleRequestSchema.parse(route.request().postDataJSON()).domain !== domain) {
+          await route.continue();
+          return;
+        }
+
+        const response = await route.fetch();
+        const body = ruleResponseSchema.parse(await response.json());
+
+        await route.fulfill({ response, json: { ...body, ruleInfo: { ...body.ruleInfo, action } } });
+      });
+    });
   }
 
   async verifyBlocked(domain: string): Promise<void> {
