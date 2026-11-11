@@ -3,6 +3,7 @@ import { env } from 'src/env';
 
 export const HEARTBEAT_PATH = '/api/extension/heartbeat';
 export const EVALUATE_RULE_PATH = '/api/employee/evaluate-rule';
+export const PROTECT_PATH = '/api/protect';
 
 export function isBackendResponse(response: Response, path: string): boolean {
   const url = new URL(response.url());

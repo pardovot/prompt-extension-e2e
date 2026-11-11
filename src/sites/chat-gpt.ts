@@ -1,0 +1,53 @@
+import { expect, test } from '@playwright/test';
+import type { Locator, Request } from '@playwright/test';
+import { BasePage, type PageObjectParams } from 'src/base-page';
+
+const CHAT_GPT_URL = 'https://chatgpt.com/';
+const PROMPT_REQUEST_PATH = '/unauth-mweb/conversation/updates';
+const PROMPT_FIELD = 'prompt';
+
+function sentPrompt(request: Request): string | null {
+  return new URLSearchParams(request.postData() ?? '').get(PROMPT_FIELD);
+}
+
+function carriesPrompt(request: Request): boolean {
+  return new URL(request.url()).pathname === PROMPT_REQUEST_PATH && Boolean(sentPrompt(request));
+}
+
+export class ChatGpt extends BasePage {
+  private readonly promptInput: Locator;
+  private readonly sendButton: Locator;
+  private readonly promptRequests: Request[] = [];
+
+  constructor(params: PageObjectParams) {
+    super(params);
+    this.promptInput = this.page.getByPlaceholder('Ask ChatGPT');
+    this.sendButton = this.page.getByRole('button', { name: 'Send message' });
+    this.page.on('request', (request) => {
+      if (carriesPrompt(request)) {
+        this.promptRequests.push(request);
+      }
+    });
+  }
+
+  // The page is usable before its scripts have loaded, and a prompt sent in that state goes out as a plain
+  // form post that the extension does not inspect, so the visit waits for the load event.
+  override async visit(): Promise<void> {
+    await super.visit(CHAT_GPT_URL);
+  }
+
+  async sendPrompt(prompt: string): Promise<void> {
+    await test.step(`Send the prompt "${prompt}"`, async () => {
+      await this.promptInput.pressSequentially(prompt);
+      await this.sendButton.click();
+    });
+  }
+
+  // The page shows the prompt as it was typed, so what reached ChatGPT is read from the request.
+  async verifyPromptSentAs(prompt: string): Promise<void> {
+    await test.step(`Verify ChatGPT was sent "${prompt}"`, async () => {
+      const request = this.promptRequests[0] ?? (await this.page.waitForRequest(carriesPrompt));
+      expect(sentPrompt(request)).toBe(prompt);
+    });
+  }
+}

@@ -9,14 +9,20 @@ export class ExtensionPopup extends BasePage {
   private readonly apiDomainInput: Locator;
   private readonly apiKeyInput: Locator;
   private readonly saveButton: Locator;
+  private readonly clearLogsButton: Locator;
+  private readonly logsClearedMessage: Locator;
   private readonly heartbeats: BackendResponses;
   private readonly alerts: Dialog[] = [];
 
   constructor(params: PageObjectParams) {
     super(params);
+    // The popup's labels are not tied to its inputs, and the inputs have no placeholder or test id, so the
+    // id is the only stable handle on them.
     this.apiDomainInput = this.page.locator('#apiDomain');
     this.apiKeyInput = this.page.locator('#apiKey');
-    this.saveButton = this.page.locator('#saveButton');
+    this.saveButton = this.page.getByRole('button', { name: 'Save' });
+    this.clearLogsButton = this.page.getByRole('button', { name: 'Clear Logs' });
+    this.logsClearedMessage = this.page.getByText('Logs were cleared', { exact: true });
     this.heartbeats = new BackendResponses(this.page.context(), HEARTBEAT_PATH);
     // Playwright dismisses a dialog that has no listener, so alerts are kept for the verification to read.
     this.page.on('dialog', (dialog) => this.alerts.push(dialog));
@@ -54,6 +60,25 @@ export class ExtensionPopup extends BasePage {
       expect(alert.message()).toBe('Failed to connect to server');
       await alert.accept();
       await expect(this.saveButton).toBeVisible();
+    });
+  }
+
+  async verifyConfigured(apiDomain: string): Promise<void> {
+    await test.step(`Verify the popup shows the saved API domain ${apiDomain}`, async () => {
+      await expect(this.apiDomainInput).toHaveValue(apiDomain);
+      await expect(this.saveButton).toBeHidden();
+    });
+  }
+
+  async clearLogs(): Promise<void> {
+    await test.step('Clear the extension logs', async () => {
+      await this.clearLogsButton.click();
+    });
+  }
+
+  async verifyLogsCleared(): Promise<void> {
+    await test.step('Verify the popup confirms the logs were cleared', async () => {
+      await expect(this.logsClearedMessage).toBeVisible();
     });
   }
 }

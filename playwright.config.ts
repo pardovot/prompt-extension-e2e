@@ -1,4 +1,4 @@
-import { defineConfig } from '@playwright/test';
+import { defineConfig, devices } from '@playwright/test';
 import { env } from 'src/env';
 import { HTML_REPORT_DIRECTORY, TEST_RESULTS_DIRECTORY } from 'src/utils/paths';
 
@@ -16,6 +16,10 @@ export default defineConfig({
   reporter: [['list'], ['html', { open: 'never', outputFolder: HTML_REPORT_DIRECTORY }]],
   use: {
     channel: 'chromium',
+    // Headless Chromium calls itself HeadlessChrome in its user agent, and chatgpt.com answers that name with
+    // a bot check in place of the site. The descriptor holds the user agent of a headed Chrome of the bundled
+    // version.
+    userAgent: devices['Desktop Chrome'].userAgent,
     actionTimeout: CALL_TIMEOUT_MILLISECONDS,
     trace: 'retain-on-failure',
     screenshot: 'on',

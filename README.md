@@ -12,6 +12,10 @@ way the admin policy says.
 | Gemini is blocked | negative, with the backend's decision overridden, see [The Gemini policy](#the-gemini-policy) |
 | The popup saves the valid API key and the extension reaches the backend | positive |
 | The popup reports a failed connection for a wrong API key | negative |
+| The popup of a configured extension shows the saved API domain | positive |
+| The popup confirms that the logs were cleared | positive |
+| A card number and a secret in a prompt are redacted before the prompt reaches ChatGPT | positive |
+| A prompt with harmless numbers reaches ChatGPT unchanged | negative |
 
 A site test relies on two things, the decision the extension got from the backend for that domain, and
 what the tab shows afterwards. An allowed site has to get a decision other than `Block` and stay in the
@@ -57,7 +61,7 @@ npm test
 
 The first run configures the extension once through its popup and saves the browser profile under
 `.profiles/`. Later runs start each test from a copy of that profile, and configure again only if the
-extension build, the API domain or the key changed. Tests run headless and in parallel, each in its own
+extension build, the API domain or the key changed. Tests run in parallel and headless, each in its own
 browser. Only the Chromium that Playwright installs is used, never an installed Chrome or a personal
 profile.
 
