@@ -9,3 +9,6 @@ blob-report/
 
 # Unpacked extension produced at setup
 .extension-unpacked/
+
+# Browser profiles, which hold the API key
+.profiles/
