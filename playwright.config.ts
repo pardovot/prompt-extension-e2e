@@ -21,4 +21,8 @@ export default defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
+  projects: [
+    { name: 'setup', testMatch: '**/*.setup.ts' },
+    { name: 'chromium', dependencies: ['setup'] },
+  ],
 });
