@@ -65,5 +65,9 @@ export type RuleDecisionFixtures = { ruleDecision: RuleDecision };
 export const ruleDecisionFixtures: Fixtures<RuleDecisionFixtures, object, PlaywrightTestArgs> = {
   ruleDecision: async ({ context }, use) => {
     await use(new RuleDecision(context));
+    // The extension asks for a decision more than once per navigation, and one of those requests can still
+    // be inside the override when the test ends. Removing the routes this way lets that request end without
+    // failing a test whose checks have all passed.
+    await context.unrouteAll({ behavior: 'ignoreErrors' });
   },
 };
