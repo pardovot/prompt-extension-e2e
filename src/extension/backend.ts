@@ -2,6 +2,7 @@ import type { BrowserContext, Response } from '@playwright/test';
 import { env } from 'src/env';
 
 export const HEARTBEAT_PATH = '/api/extension/heartbeat';
+export const POPUP_ASSETS_PATH = '/api/popups/static/engine/v1/assets';
 export const EVALUATE_RULE_PATH = '/api/employee/evaluate-rule';
 export const PROTECT_PATH = '/api/protect';
 

@@ -1,7 +1,7 @@
-import { chromium } from '@playwright/test';
-import type { BrowserContext, Fixtures, PlaywrightTestArgs } from '@playwright/test';
+import { chromium, test } from '@playwright/test';
+import type { BrowserContext, Fixtures, PlaywrightTestArgs, Response } from '@playwright/test';
 import { cpSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
-import { HEARTBEAT_PATH, isBackendResponse } from 'src/extension/backend';
+import { HEARTBEAT_PATH, isBackendResponse, POPUP_ASSETS_PATH } from 'src/extension/backend';
 import { isConfiguredProfileCurrent, markConfiguredProfileCurrent } from 'src/utils/configured-profile';
 import { CONFIGURED_PROFILE_DIRECTORY, TEST_PROFILE_PREFIX, TEST_PROFILES_DIRECTORY, UNPACKED_EXTENSION_DIRECTORY } from 'src/utils/paths';
 
@@ -40,6 +40,11 @@ async function waitForStartupHeartbeat(context: BrowserContext): Promise<void> {
   }
 }
 
+// The popup assets come from another host, which the heartbeat's answer names, so the call is matched by path.
+function isPopupAssetsResponse(response: Response): boolean {
+  return new URL(response.url()).pathname === POPUP_ASSETS_PATH;
+}
+
 export const extensionContextFixtures: Fixtures<ExtensionContextFixtures, object, PlaywrightTestArgs> = {
   extensionProfile: ['configured', { option: true }],
 
@@ -59,12 +64,27 @@ export const extensionContextFixtures: Fixtures<ExtensionContextFixtures, object
       recordVideo: { dir: videoDirectory },
     });
 
+    let popupAssetsLoaded = false;
+    context.on('response', (response) => {
+      popupAssetsLoaded ||= isPopupAssetsResponse(response);
+    });
+
     try {
       if (extensionProfile === 'configured') {
         await waitForStartupHeartbeat(context);
       }
 
       await use(context);
+
+      // After its first heartbeat the extension fetches its configuration, its list of native apps and its
+      // popup assets, in that order, and keeps them in the profile. The profile is saved only after the last
+      // of them, so every copy starts with the configuration in place. A copy of a profile saved sooner
+      // fetches it again while its test is already running.
+      if (extensionProfile === 'setup' && testInfo.status === 'passed' && !popupAssetsLoaded) {
+        await test.step('Wait for the extension to load its first configuration', async () => {
+          await context.waitForEvent('response', isPopupAssetsResponse);
+        });
+      }
     } finally {
       const videos = context.pages().map((tab) => tab.video());
       await context.close();
