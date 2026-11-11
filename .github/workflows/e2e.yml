@@ -52,21 +52,40 @@ jobs:
     if: ${{ !cancelled() && github.ref == 'refs/heads/master' }}
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      pages: write
-      id-token: write
+      contents: write
+      statuses: write
     concurrency:
-      group: pages
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
+      group: reports
+    env:
+      REPORTS_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/${{ github.run_id }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: gh-pages
       - uses: actions/download-artifact@v8
         with:
-          path: .github/pages
-      - uses: actions/upload-pages-artifact@v5
-        with:
-          path: .github/pages
-      - id: deploy
-        uses: actions/deploy-pages@v5
+          pattern: playwright-report-*
+          path: downloaded
+      - name: Add the reports to the gh-pages branch, one folder per system
+        run: |
+          rm -rf "$GITHUB_RUN_ID"
+          mkdir "$GITHUB_RUN_ID"
+          for report in downloaded/playwright-report-*; do
+            system="${report#downloaded/playwright-report-}"
+            mv "$report" "$GITHUB_RUN_ID/${system%-latest}"
+          done
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$GITHUB_RUN_ID"
+          git commit --message "Add the reports of run $GITHUB_RUN_ID"
+          git push
+      - name: Link the reports from the run summary and from the commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "### Playwright reports" >> "$GITHUB_STEP_SUMMARY"
+          for report in "$GITHUB_RUN_ID"/*/; do
+            system="$(basename "$report")"
+            echo "- [$system]($REPORTS_URL/$system/)" >> "$GITHUB_STEP_SUMMARY"
+            gh api "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" --silent               --field state=success               --field context="report / $system"               --field description="Playwright HTML report"               --field target_url="$REPORTS_URL/$system/"
+          done
