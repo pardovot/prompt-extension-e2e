@@ -93,11 +93,12 @@ jobs:
       - name: Link the reports from the run summary and from the commit
         env:
           GH_TOKEN: ${{ github.token }}
+          TESTS_STATE: ${{ needs.test.result == 'success' && 'success' || 'failure' }}
         run: |
           echo "### Playwright reports" >> "$GITHUB_STEP_SUMMARY"
           for report in "$GITHUB_RUN_ID"/*/; do
             system="$(basename "$report")"
             link="$REPORTS_URL/$system/"
             echo "- [$system]($link)" >> "$GITHUB_STEP_SUMMARY"
-            gh api "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" --silent -f state=success -f context="report / $system" -f target_url="$link"
+            gh api "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" --silent -f state="$TESTS_STATE" -f context="report / $system" -f target_url="$link"
           done
