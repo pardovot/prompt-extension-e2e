@@ -69,6 +69,8 @@ export const extensionContextFixtures: Fixtures<ExtensionContextFixtures, object
       popupAssetsLoaded ||= isPopupAssetsResponse(response);
     });
 
+    let savedProfileReady = false;
+
     try {
       if (extensionProfile === 'configured') {
         await waitForStartupHeartbeat(context);
@@ -80,10 +82,14 @@ export const extensionContextFixtures: Fixtures<ExtensionContextFixtures, object
       // popup assets, in that order, and keeps them in the profile. The profile is saved only after the last
       // of them, so every copy starts with the configuration in place. A copy of a profile saved sooner
       // fetches it again while its test is already running.
-      if (extensionProfile === 'setup' && testInfo.status === 'passed' && !popupAssetsLoaded) {
-        await test.step('Wait for the extension to load its first configuration', async () => {
-          await context.waitForEvent('response', isPopupAssetsResponse);
-        });
+      if (extensionProfile === 'setup' && testInfo.status === 'passed') {
+        if (!popupAssetsLoaded) {
+          await test.step('Wait for the extension to load its first configuration', async () => {
+            await context.waitForEvent('response', isPopupAssetsResponse);
+          });
+        }
+
+        savedProfileReady = true;
       }
     } finally {
       const videos = context.pages().map((tab) => tab.video());
@@ -99,7 +105,7 @@ export const extensionContextFixtures: Fixtures<ExtensionContextFixtures, object
 
       if (extensionProfile !== 'setup') {
         rmSync(profileDirectory, { recursive: true, force: true });
-      } else if (testInfo.status === 'passed') {
+      } else if (savedProfileReady) {
         markConfiguredProfileCurrent();
       }
     }
