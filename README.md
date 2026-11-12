@@ -47,7 +47,7 @@ I'm happy to make that change as soon as it does.
 
 ## Running locally
 
-Node 22 or newer is needed.
+Node 22.18 or newer is needed.
 
 ```
 npm ci

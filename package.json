@@ -4,7 +4,7 @@
   "private": true,
   "description": "End to end tests for the Prompt Security browser extension's access control of GenAI sites",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.18"
   },
   "scripts": {
     "test": "playwright test",
