@@ -38,14 +38,14 @@ export class RuleDecision {
   }
 
   async verifyBlocked(domain: string): Promise<void> {
-    await test.step(`Verify the extension decided to block ${domain}`, async () => {
+    await test.step(`Verify the decision the extension received for ${domain} is Block`, async () => {
       const action = await this.firstAction(domain);
       expect(action).toBe('Block');
     });
   }
 
   async verifyAllowed(domain: string): Promise<void> {
-    await test.step(`Verify the extension decided not to block ${domain}`, async () => {
+    await test.step(`Verify the decision the extension received for ${domain} is not Block`, async () => {
       const action = await this.firstAction(domain);
       expect(action).not.toBe('Block');
     });

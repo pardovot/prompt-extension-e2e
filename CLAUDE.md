@@ -7,8 +7,9 @@ AI assisted or not.
 
 ## Always
 
-- Specs talk to the browser through page objects only: no `page.goto`, `page.getBy*` or `page.locator` in a
-  `.spec.ts` file. A missing page object is created before the spec that needs it.
+- Specs never use the browser directly. They call page objects and the helper fixtures in `src/fixtures/`:
+  no `page.goto`, `page.getBy*` or `page.locator` in a `.spec.ts` file. A missing page object is created
+  before the spec that needs it.
 - Page objects live in `src/<domain>/<name>.ts`, extend `BasePage`, and are re-exported through
   `src/<domain>/index.ts` and `src/index.ts`, which is what turns each one into a fixture.
 - Wrap every action and verification in `test.step('intent', ...)` inside the page object method, not in

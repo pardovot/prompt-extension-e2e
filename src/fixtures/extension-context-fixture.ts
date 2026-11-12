@@ -111,7 +111,7 @@ export const extensionContextFixtures: Fixtures<ExtensionContextFixtures, object
     }
   },
 
-  // A persistent context opens with one tab. Tests use that tab, so each test has one tab and one video.
+  // A persistent context opens with one tab. Tests work in that tab, so the video of a test shows it.
   page: async ({ context }, use) => {
     const [firstPage] = context.pages();
 

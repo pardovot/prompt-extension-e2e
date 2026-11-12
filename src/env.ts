@@ -16,8 +16,7 @@ const envSchema = z.object({
 const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
-  throw new Error(`Invalid environment. Copy .env.example to .env and fill it in.
-    \n${z.prettifyError(parsed.error)}`);
+  throw new Error(`Invalid environment. Copy .env.example to .env and fill it in.\n\n${z.prettifyError(parsed.error)}`);
 }
 
 export const env = parsed.data;

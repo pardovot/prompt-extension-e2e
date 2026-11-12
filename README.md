@@ -1,5 +1,7 @@
 # prompt-extension-e2e
 
+[![e2e](https://github.com/pardovot/prompt-extension-e2e/actions/workflows/e2e.yml/badge.svg)](https://github.com/pardovot/prompt-extension-e2e/actions/workflows/e2e.yml)
+
 End to end tests for the Prompt Security browser extension. The suite loads the extension into Chromium with
 Playwright, configures it with an API domain and key, and checks that it allows or blocks GenAI sites the
 way the admin policy says.
@@ -22,8 +24,8 @@ way the admin policy says.
 A site test relies on two things, the decision the extension got from the backend for that domain, and
 what the tab shows afterwards. An allowed site has to get a decision other than `Block` and stay in the
 tab, a blocked site has to get `Block` and end up on the extension's "Access Denied" page naming the
-domain. Waiting for the decision first is what keeps "the site was not blocked" from passing just because
-the extension had not acted yet.
+domain. Waiting for the decision first keeps "the site was not blocked" from passing before the extension
+has been told what to do with the site.
 
 ## The Gemini policy
 

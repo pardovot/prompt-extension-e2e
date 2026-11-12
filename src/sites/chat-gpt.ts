@@ -64,7 +64,7 @@ export class ChatGpt extends BasePage {
     });
   }
 
-  // The page shows the prompt as it was typed, so what reached ChatGPT is read from the request.
+  // The page shows the prompt as it was entered, so what reached ChatGPT is read from the request.
   async verifyPromptSentAs(prompt: string): Promise<void> {
     await test.step(`Verify ChatGPT was sent "${prompt}"`, async () => {
       const request = this.promptRequests[0] ?? (await this.page.waitForRequest(carriesPrompt));
