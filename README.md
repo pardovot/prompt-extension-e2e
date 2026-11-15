@@ -65,9 +65,9 @@ npm test
 
 The first run configures the extension once through its popup and saves the browser profile under
 `.profiles/`. Later runs start each test from a copy of that profile, and configure again only if the
-extension build, the API domain or the key changed. Tests run in parallel and headless, each in its own
-browser. Only the Chromium that Playwright installs is used, never an installed Chrome or a personal
-profile.
+extension build, the API domain or the key changed, or if the backend has a newer configuration than the
+one in the profile. Tests run in parallel and headless, each in its own browser. Only the Chromium that
+Playwright installs is used, never an installed Chrome or a personal profile.
 
 | Command | What it does |
 |---|---|
@@ -106,6 +106,10 @@ The workflow needs one repository secret, `PROMPT_API_KEY`.
 - The extension is configured once through its popup and the browser profile is saved. Every test starts
   from its own copy of that profile, the way a web suite reuses a signed in session, because Playwright's
   `storageState` does not cover extension storage.
+- Before a run reuses the saved profile, setup asks the backend whether it has a newer configuration, with
+  the same heartbeat call the extension makes and the timestamps saved with the profile. An extension that
+  holds an older configuration fetches the newer one at startup, while its test is already running, so an
+  out of date profile is configured again.
 - Every test has its own browser and its own profile, so tests share nothing and run in parallel in any
   order.
 - Tests wait on what the extension does, never for a fixed time: its startup heartbeat before a site is

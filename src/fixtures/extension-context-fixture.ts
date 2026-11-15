@@ -1,8 +1,16 @@
 import { chromium, test } from '@playwright/test';
-import type { BrowserContext, Fixtures, PlaywrightTestArgs, Response } from '@playwright/test';
+import type { BrowserContext, Fixtures, PlaywrightTestArgs } from '@playwright/test';
 import { cpSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
-import { HEARTBEAT_PATH, isBackendResponse, POPUP_ASSETS_PATH } from 'src/extension/backend';
-import { isConfiguredProfileCurrent, markConfiguredProfileCurrent } from 'src/utils/configured-profile';
+import { z } from 'zod';
+import {
+  BackendResponses,
+  CONFIGURATION_PATH,
+  HEARTBEAT_PATH,
+  isBackendResponse,
+  isStaticResponse,
+  POPUP_ASSETS_PATH,
+} from 'src/extension/backend';
+import { isConfiguredProfileCurrent, markConfiguredProfileCurrent, type ConfigurationVersion } from 'src/utils/configured-profile';
 import { CONFIGURED_PROFILE_DIRECTORY, TEST_PROFILE_PREFIX, TEST_PROFILES_DIRECTORY, UNPACKED_EXTENSION_DIRECTORY } from 'src/utils/paths';
 
 // 'configured' is a copy of the saved configured profile, 'empty' is the extension as installed, and
@@ -40,9 +48,25 @@ async function waitForStartupHeartbeat(context: BrowserContext): Promise<void> {
   }
 }
 
-// The popup assets come from another host, which the heartbeat's answer names, so the call is matched by path.
-function isPopupAssetsResponse(response: Response): boolean {
-  return new URL(response.url()).pathname === POPUP_ASSETS_PATH;
+const configurationSchema = z.looseObject({ configTimestamps: z.record(z.string(), z.string()) });
+const popupAssetsSchema = z.looseObject({ timestamp: z.string() });
+
+// After its first heartbeat the extension fetches its configuration, its list of native apps and its popup
+// assets, in that order, and keeps them in the profile. Waiting for the last of them means every copy of the
+// profile starts with the configuration in place. The timestamps are the ones the extension sends with its
+// later heartbeats: one per part of the configuration, and the newest of them for the configuration as a whole.
+async function loadedConfigurationVersion(configurations: BackendResponses, popupAssets: BackendResponses): Promise<ConfigurationVersion> {
+  const configuration = await configurations.firstResponse();
+  const assets = await popupAssets.firstResponse();
+  const { configTimestamps } = configurationSchema.parse(await configuration.json());
+  const { timestamp } = popupAssetsSchema.parse(await assets.json());
+
+  return {
+    lastConfigurationTimestamp: Object.values(configTimestamps).reduce((newest, time) =>
+      Date.parse(time) > Date.parse(newest) ? time : newest,
+    ),
+    configTimestamps: { ...configTimestamps, popupAssets: timestamp },
+  };
 }
 
 export const extensionContextFixtures: Fixtures<ExtensionContextFixtures, object, PlaywrightTestArgs> = {
@@ -50,8 +74,8 @@ export const extensionContextFixtures: Fixtures<ExtensionContextFixtures, object
 
   context: async ({ extensionProfile }, use, testInfo) => {
     testInfo.skip(
-      extensionProfile === 'setup' && isConfiguredProfileCurrent(),
-      'The saved profile matches the extension build, API domain and key',
+      extensionProfile === 'setup' && (await isConfiguredProfileCurrent()),
+      'The saved profile matches the extension build, API domain and key, and the backend has no newer configuration',
     );
 
     const profileDirectory = createProfileDirectory(extensionProfile);
@@ -64,12 +88,9 @@ export const extensionContextFixtures: Fixtures<ExtensionContextFixtures, object
       recordVideo: { dir: videoDirectory },
     });
 
-    let popupAssetsLoaded = false;
-    context.on('response', (response) => {
-      popupAssetsLoaded ||= isPopupAssetsResponse(response);
-    });
-
-    let savedProfileReady = false;
+    const configurations = new BackendResponses(context, CONFIGURATION_PATH, isStaticResponse);
+    const popupAssets = new BackendResponses(context, POPUP_ASSETS_PATH, isStaticResponse);
+    let savedConfigurationVersion: ConfigurationVersion | undefined;
 
     try {
       if (extensionProfile === 'configured') {
@@ -78,18 +99,9 @@ export const extensionContextFixtures: Fixtures<ExtensionContextFixtures, object
 
       await use(context);
 
-      // After its first heartbeat the extension fetches its configuration, its list of native apps and its
-      // popup assets, in that order, and keeps them in the profile. The profile is saved only after the last
-      // of them, so every copy starts with the configuration in place. A copy of a profile saved sooner
-      // fetches it again while its test is already running.
       if (extensionProfile === 'setup' && testInfo.status === 'passed') {
-        if (!popupAssetsLoaded) {
-          await test.step('Wait for the extension to load its first configuration', async () => {
-            await context.waitForEvent('response', isPopupAssetsResponse);
-          });
-        }
-
-        savedProfileReady = true;
+        savedConfigurationVersion = await test.step('Wait for the extension to load its first configuration', () =>
+          loadedConfigurationVersion(configurations, popupAssets));
       }
     } finally {
       const videos = context.pages().map((tab) => tab.video());
@@ -105,8 +117,8 @@ export const extensionContextFixtures: Fixtures<ExtensionContextFixtures, object
 
       if (extensionProfile !== 'setup') {
         rmSync(profileDirectory, { recursive: true, force: true });
-      } else if (savedProfileReady) {
-        markConfiguredProfileCurrent();
+      } else if (savedConfigurationVersion) {
+        markConfiguredProfileCurrent(savedConfigurationVersion);
       }
     }
   },

@@ -2,6 +2,7 @@ import type { BrowserContext, Response } from '@playwright/test';
 import { env } from 'src/env';
 
 export const HEARTBEAT_PATH = '/api/extension/heartbeat';
+export const CONFIGURATION_PATH = '/api/extension/static/heartbeat';
 export const POPUP_ASSETS_PATH = '/api/popups/static/engine/v1/assets';
 export const EVALUATE_RULE_PATH = '/api/employee/evaluate-rule';
 export const PROTECT_PATH = '/api/protect';
@@ -12,15 +13,22 @@ export function isBackendResponse(response: Response, path: string): boolean {
   return url.host === env.PROMPT_API_DOMAIN && url.pathname === path;
 }
 
+// The configuration and the popup assets come from another host, which the heartbeat's answer names, so
+// those calls are matched by path alone.
+export function isStaticResponse(response: Response, path: string): boolean {
+  return new URL(response.url()).pathname === path;
+}
+
 export class BackendResponses {
   private readonly recorded: Response[] = [];
 
   constructor(
     private readonly context: BrowserContext,
     private readonly path: string,
+    private readonly isFromPath: (response: Response, path: string) => boolean = isBackendResponse,
   ) {
     context.on('response', (response) => {
-      if (isBackendResponse(response, path)) {
+      if (isFromPath(response, path)) {
         this.recorded.push(response);
       }
     });
@@ -30,7 +38,7 @@ export class BackendResponses {
   async firstResponse(matches: (response: Response) => boolean = () => true): Promise<Response> {
     return (
       this.recorded.find(matches) ??
-      (await this.context.waitForEvent('response', (response) => isBackendResponse(response, this.path) && matches(response)))
+      (await this.context.waitForEvent('response', (response) => this.isFromPath(response, this.path) && matches(response)))
     );
   }
 }
